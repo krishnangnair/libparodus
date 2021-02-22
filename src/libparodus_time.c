@@ -17,6 +17,7 @@
 
 #include "libparodus_time.h"
 #include "libparodus_log.h"
+#include "liparodus_log.h"
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -40,6 +41,7 @@ int get_current_time (struct timeval *tv, struct tm *split_time)
 {
 	time_t secs;
 	int err = gettimeofday (tv, NULL);
+	libParodusInfo("get_current_time\n");
 	if (err != 0) {
 		libpd_log_err (LEVEL_ERROR, errno, ("Error getting time of day\n"));
 		return err;

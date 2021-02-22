@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "libparodus_log.h"
+#include "liparodus_log.h"
 
 typedef struct queue {
 	const char *queue_name;
@@ -44,10 +45,12 @@ int libpd_qcreate (libpd_mq_t *mq, const char *queue_name,
 
 	*exterr = 0;
 	*mq = NULL;
+	libParodusInfo("libpd_qcreate\n");
 	if (max_msgs < 2) {
 		libpd_log (LEVEL_ERROR, 
 			("Error creating queue %s: max_msgs(%u) should be at least 2\n",
 			queue_name, max_msgs));
+		
 		return LIBPD_QERR_CREATE_INVAL_SZ;
 	}
 		
@@ -57,6 +60,8 @@ int libpd_qcreate (libpd_mq_t *mq, const char *queue_name,
 	if (NULL == newq) {
 		libpd_log (LEVEL_ERROR, ("Unable to allocate memory(1) for queue %s\n",
 			queue_name));
+		libParodusError("Unable to allocate memory(1) for queue %s\n",
+			queue_name);
 		return LIBPD_QERR_CREATE_ALLOC_1;
 	}
 
@@ -71,6 +76,8 @@ int libpd_qcreate (libpd_mq_t *mq, const char *queue_name,
 		*exterr = err;
 		libpd_log_err (LEVEL_ERROR, err, ("Error creating mutex for queue %s\n",
 			queue_name));
+		libParodusError("Error creating mutex for queue %s\n",
+			queue_name);
 		free (newq);
 		return LIBPD_QERR_CREATE_MUTEX;
 	}
@@ -80,6 +87,8 @@ int libpd_qcreate (libpd_mq_t *mq, const char *queue_name,
 		*exterr = err;
 		libpd_log_err (LEVEL_ERROR, err, ("Error creating not_empty_cond for queue %s\n",
 			queue_name));
+		libParodusError("Error creating not_empty_cond for queue %s\n",
+			queue_name);
 		pthread_mutex_destroy (&newq->mutex);
 		free (newq);
 		return LIBPD_QERR_CREATE_NECOND;
@@ -90,6 +99,8 @@ int libpd_qcreate (libpd_mq_t *mq, const char *queue_name,
 		*exterr = err;
 		libpd_log_err (LEVEL_ERROR, err, ("Error creating not_full_cond for queue %s\n",
 			queue_name));
+		libParodusError("Error creating not_full_cond for queue %s\n",
+			queue_name);
 		pthread_mutex_destroy (&newq->mutex);
 		pthread_cond_destroy (&newq->not_empty_cond);
 		free (newq);
@@ -100,6 +111,8 @@ int libpd_qcreate (libpd_mq_t *mq, const char *queue_name,
 	if (NULL == newq->msg_array) {
 		libpd_log (LEVEL_ERROR, ("Unable to allocate memory(2) for queue %s\n",
 			queue_name));
+		libParodusError("Unable to allocate memory(2) for queue %s\n",
+			queue_name);
 		pthread_mutex_destroy (&newq->mutex);
 		pthread_cond_destroy (&newq->not_empty_cond);
 		pthread_cond_destroy (&newq->not_full_cond);
@@ -173,9 +186,9 @@ int libpd_qsend (libpd_mq_t mq, void *msg, unsigned timeout_ms, int *exterr)
 {
 	queue_t *q = (queue_t*) mq;
 	struct timespec ts;
-	int rtn;
-
+	int rtn;	
 	*exterr = 0;
+	libParodusInfo("libpd_qsend\n");
 	if (NULL == mq)
 		return LIBPD_QERR_SEND_NULL;
 	pthread_mutex_lock (&q->mutex);
@@ -187,6 +200,7 @@ int libpd_qsend (libpd_mq_t mq, void *msg, unsigned timeout_ms, int *exterr)
 			*exterr = rtn;
 			libpd_log_err (LEVEL_ERROR, rtn, 
 				("gettimeofday error waiting to send queue\n"));
+			libParodusError("gettimeofday error waiting to send queue\n");
 			pthread_mutex_unlock (&q->mutex);
 			return LIBPD_QERR_SEND_EXPTIME;
 		}
@@ -199,6 +213,7 @@ int libpd_qsend (libpd_mq_t mq, void *msg, unsigned timeout_ms, int *exterr)
 			*exterr = rtn;
 			libpd_log_err (LEVEL_ERROR, rtn, 
 				("pthread_cond_timedwait error waiting for not_full_cond\n"));
+			libParodusError("pthread_cond_timedwait error waiting for not_full_cond\n");
 			pthread_mutex_unlock (&q->mutex);
 			return LIBPD_QERR_SEND_CONDWAIT;
 		}
@@ -215,8 +230,8 @@ int libpd_qreceive (libpd_mq_t mq, void **msg, unsigned timeout_ms, int *exterr)
 	struct timespec ts;
 	void *msg__;
 	int rtn;
-
-	*exterr = 0;
+	
+	*exterr = 0;	
 	if (NULL == mq)
 		return LIBPD_QERR_RCV_NULL;
 	pthread_mutex_lock (&q->mutex);
@@ -229,6 +244,7 @@ int libpd_qreceive (libpd_mq_t mq, void **msg, unsigned timeout_ms, int *exterr)
 			*exterr = rtn;
 			libpd_log_err (LEVEL_ERROR, rtn, 
 				("gettimeofday error waiting to receive on queue\n"));
+			libParodusError("gettimeofday error waiting to receive on queue\n");
 			pthread_mutex_unlock (&q->mutex);
 			return LIBPD_QERR_RCV_EXPTIME;
 		}
@@ -241,6 +257,7 @@ int libpd_qreceive (libpd_mq_t mq, void **msg, unsigned timeout_ms, int *exterr)
 			*exterr = rtn;
 			libpd_log_err (LEVEL_ERROR, rtn, 
 				("pthread_cond_timedwait error waiting for not_empty_cond\n"));
+			libParodusError("pthread_cond_timedwait error waiting for not_empty_cond\n");
 			pthread_mutex_unlock (&q->mutex);
 			return LIBPD_QERR_RCV_CONDWAIT;
 		}
